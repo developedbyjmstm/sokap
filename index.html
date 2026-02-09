@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Match Parser - Sokapicks.com</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .tip.win {
+    background: #34c759;
+    color: white;
+}
+
+.tip.loss {
+    background: #f40c27;
+    color: white;
+}
+
+.tip.ongoing {
+    background: #9A7701;
+    color: white;
+}
+        
+        body {
+            background: linear-gradient(135deg, #0A2625 0%, #103F3E 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #9A7701;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #B5C3C3;
+            margin-bottom: 20px;
+        }
+        
+        .output-section {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #9A7701;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #9A7701;
+        }
+        
+        .results {
+            background: rgba(10, 38, 37, 0.7);
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .match {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #9A7701;
+        }
+        
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .league {
+            font-weight: bold;
+            color: #B5C3C3;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .country-flag {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .status.live {
+            background: #f40c27;
+        }
+        
+        .status.finished {
+            background: #34c759;
+        }
+        
+        .status.upcoming {
+            background: #9A7701;
+        }
+        
+        .teams {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .team {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .team.home {
+            justify-content: flex-start;
+        }
+        
+        .team.away {
+            justify-content: flex-end;
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+        
+        .team-flag {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .score {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #9A7701;
+            margin: 0 15px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .prediction {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tip {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .tip.win {
+            background: #34c759;
+            color: white;
+        }
+        
+        .tip.loss {
+            background: #f40c27;
+            color: white;
+        }
+        
+        .tip.ongoing {
+            background: #9A7701;
+            color: white;
+        }
+        
+        .odds {
+            color: #B5C3C3;
+            font-weight: bold;
+        }
+        
+        .json-output {
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .no-results {
+            text-align: center;
+            color: #B5C3C3;
+            font-style: italic;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #B5C3C3;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #B5C3C3;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-indicator.finished { background: #34c759; }
+        .status-indicator.live { background: #f40c27; animation: pulse 1.5s infinite; }
+        .status-indicator.upcoming { background: #9A7701; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .team-flag-placeholder {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(154, 119, 1, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sokapicks.com Parser</h1>
+            <div class="subtitle">Extracts football predictions and match data from sokapicks.com</div>
+        </header>
+        
+        <div class="output-section">
+            <h2>EXTRACTED MATCHES <span id="match-count"></span></h2>
+            <div class="results" id="results">
+                <p class="loading">Set HTML content via JavaScript interface</p>
+            </div>
+            <div class="json-output" id="jsonOutput">{}</div>
+        </div>
+        
+        <div class="output-section">
+            <h2>STATISTICS</h2>
+            <div id="statistics">
+                <p class="loading">Statistics will appear here after parsing</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variable that will contain the HTML to parse
+        var htmlContentVariable = '';
+        
+        // Function to set HTML content from Android
+        function setHtmlContent(html) {
+            if (!html || html.trim() === '') {
+                console.error("Empty HTML content provided");
+                document.getElementById('results').innerHTML = '<p class="no-results">Error: Empty HTML content</p>';
+                return;
+            }
+            
+            htmlContentVariable = html;
+            console.log("HTML content set, length:", html.length);
+            
+            // Automatically parse the HTML when it's set
+            parseAllMatches();
+        }
+        
+        // Helper function to get absolute URL
+        function getAbsoluteUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            if (url.startsWith('//')) {
+                return 'https:' + url;
+            }
+            if (url.startsWith('/')) {
+                return 'https://sokapicks.com' + url;
+            }
+            return 'https://sokapicks.com/' + url;
+        }
+        
+        // Main parsing function for Sokapicks.com
+        function parseAllMatches() {
+            if (!htmlContentVariable) {
+                document.getElementById('results').innerHTML = '<p class="no-results">No HTML content provided</p>';
+                return;
+            }
+            
+            try {
+                console.log("Starting parsing...");
+                
+                // Create a temporary DOM element to parse the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContentVariable;
+                
+                const matches = [];
+                const stats = {
+                    total: 0,
+                    finished: 0,
+                    live: 0,
+                    upcoming: 0,
+                    wins: 0,
+                    losses: 0,
+                    pending: 0,
+                    countries: new Set(),
+                    leagues: new Set()
+                };
+                
+                // Find all country sections first
+                const countrySections = tempDiv.querySelectorAll('.space-y-4');
+                console.log(`Found ${countrySections.length} country sections`);
+                
+                // Parse each country section
+                countrySections.forEach((countrySection, countryIndex) => {
+                    try {
+                        // Extract country name and flag
+                        const countryNameElement = countrySection.querySelector('h2');
+                        const countryName = countryNameElement ? countryNameElement.textContent.trim() : `Country ${countryIndex + 1}`;
+                        
+                        const countryFlagImg = countrySection.querySelector('img[src*="flags"]');
+                        let countryFlag = '';
+                        if (countryFlagImg && countryFlagImg.src) {
+                            countryFlag = getAbsoluteUrl(countryFlagImg.src);
+                            // Ensure it has the correct format
+                            if (!countryFlag.includes('/flags/')) {
+                                countryFlag = 'https://sokapicks.com/flags/' + countryFlag.split('/').pop();
+                            }
+                        } else {
+                            // Try to guess country flag from country name
+                            const countryCode = getCountryCode(countryName);
+                            if (countryCode) {
+                                countryFlag = `https://sokapicks.com/flags/${countryCode}.svg`;
+                            }
+                        }
+                        
+                        // Find league sections within this country
+                        const leagueSections = countrySection.querySelectorAll('.bg-surface.rounded-xl.shadow-sm.border.border-gray-100');
+                        
+                        leagueSections.forEach((leagueSection, leagueIndex) => {
+                            // Extract league name
+                            const leagueNameElement = leagueSection.querySelector('h3');
+                            const leagueName = leagueNameElement ? leagueNameElement.textContent.trim() : `League ${leagueIndex + 1}`;
+                            
+                            // Find match containers in this league
+                            const matchContainers = leagueSection.querySelectorAll('.group.relative.flex.flex-col.bg-surface.rounded-xl.border.border-gray-100.shadow-sm');
+                            
+                            matchContainers.forEach((matchContainer, matchIndex) => {
+                                try {
+                                    const matchData = extractMatchData(matchContainer, countryName, countryFlag, leagueName, matchIndex);
+                                    if (matchData && matchData.team1 && matchData.team2) {
+                                        matches.push(matchData);
+                                        
+                                        // Update statistics
+                                        stats.total++;
+                                        if (countryName) stats.countries.add(countryName);
+                                        if (leagueName) stats.leagues.add(leagueName);
+                                        
+                                        if (matchData.status === 'FINISHED') stats.finished++;
+                                        else if (matchData.status === 'LIVE') stats.live++;
+                                        else if (matchData.status === 'UPCOMING') stats.upcoming++;
+                                        
+                                        if (matchData.result === 'win') stats.wins++;
+                                        else if (matchData.result === 'loss') stats.losses++;
+                                        else stats.pending++;
+                                    }
+                                } catch (error) {
+                                    console.error(`Error parsing match ${matchIndex} in ${leagueName}:`, error);
+                                }
+                            });
+                        });
+                        
+                    } catch (error) {
+                        console.error(`Error parsing country section ${countryIndex}:`, error);
+                    }
+                });
+                
+                // If we didn't find matches in the structured way, try fallback
+                if (matches.length === 0) {
+                    console.log("No matches found in structured sections, trying fallback...");
+                    const fallbackMatches = fallbackParse(tempDiv);
+                    matches.push(...fallbackMatches);
+                    stats.total = fallbackMatches.length;
+                    stats.upcoming = fallbackMatches.length;
+                }
+                
+                // Convert sets to arrays for JSON serialization
+                stats.countries = Array.from(stats.countries);
+                stats.leagues = Array.from(stats.leagues);
+                
+                console.log(`Parsing complete. Found ${matches.length} matches`);
+                
+                displayResults(matches, stats);
+                
+            } catch (e) {
+                console.error("Error parsing HTML:", e);
+                document.getElementById('results').innerHTML = '<p class="no-results">Error parsing HTML: ' + e.message + '</p>';
+            }
+        }
+        
+        // Helper to get country code from country name
+        function getCountryCode(countryName) {
+            const countryMap = {
+                'Azerbaijan': 'az',
+                'Turkey': 'tr',
+                'Israel': 'il',
+                'Italy': 'it',
+                'Spain': 'es',
+                'Portugal': 'pt',
+                'England': 'gb-eng',
+                'Germany': 'de',
+                'France': 'fr',
+                'Netherlands': 'nl',
+                'Argentina': 'ar',
+                'Colombia': 'co',
+                'Jamaica': 'jm'
+            };
+            
+            for (const [name, code] of Object.entries(countryMap)) {
+                if (countryName.includes(name)) {
+                    return code;
+                }
+            }
+            
+            // Default to generic flag
+            return 'eu';
+        }
+        
+        // Extract data from a match container
+        function extractMatchData(container, countryName, countryFlag, leagueName, matchIndex) {
+            const match = {
+                id: `match-${countryName}-${leagueName}-${matchIndex}`.replace(/\s+/g, '-').toLowerCase(),
+                country: countryName,
+                countryflag: countryFlag,
+                league: leagueName,
+                leagueflag: countryFlag,
+                team1: "",
+                team2: "",
+                team1Flag: "",
+                team2Flag: "",
+                time: "",
+                status: "UPCOMING",
+                scoreteam1: "",
+                scoreteam2: "",
+                prediction: "",
+                odds: "",
+                winProbability: "",
+                stakeLevel: "",
+                result: "pending"
+            };
+            
+            // Extract time and status
+            const timeElement = container.querySelector('.text-xs.font-bold.text-slate-700.uppercase.tracking-wider');
+            if (timeElement) {
+                const timeText = timeElement.textContent.trim();
+                if (timeText === 'FT') {
+                    match.status = 'FINISHED';
+                    match.time = 'FT';
+                } else if (timeText === 'LIVE' || container.querySelector('.animate-pulse')) {
+                    match.status = 'LIVE';
+                    match.time = 'LIVE';
+                } else if (timeText && timeText.match(/\d{1,2}[:.]\d{2}/)) {
+                    match.status = 'UPCOMING';
+                    match.time = timeText;
+                }
+            }
+            
+            // Extract team names and scores - looking for specific structure
+            const teamContainers = container.querySelectorAll('.flex.justify-between.items-center.group\\/team');
+            
+            if (teamContainers.length >= 2) {
+                // Home team (first container)
+                const homeTeamContainer = teamContainers[0];
+                const homeTeamSpan = homeTeamContainer.querySelector('span.font-bold.text-text.text-sm');
+                match.team1 = homeTeamSpan ? homeTeamSpan.textContent.trim() : '';
+                
+                // Home team score
+                const homeScoreSpan = homeTeamContainer.querySelector('.font-mono.font-bold.text-lg');
+                match.scoreteam1 = homeScoreSpan ? homeScoreSpan.textContent.trim() : '-';
+                
+                // Home team flag - look for img in the team container
+                const homeFlagImg = homeTeamContainer.querySelector('img');
+                if (homeFlagImg && homeFlagImg.src) {
+                    match.team1Flag = getAbsoluteUrl(homeFlagImg.src);
+                } else {
+                    // Try to find flag in the parent div with w-8 h-8 class
+                    const homeFlagDiv = homeTeamContainer.querySelector('.w-8.h-8.rounded-full');
+                    if (homeFlagDiv) {
+                        const imgInDiv = homeFlagDiv.querySelector('img');
+                        if (imgInDiv && imgInDiv.src) {
+                            match.team1Flag = getAbsoluteUrl(imgInDiv.src);
+                        }
+                    }
+                }
+                
+                // Away team (second container)
+                const awayTeamContainer = teamContainers[1];
+                const awayTeamSpan = awayTeamContainer.querySelector('span.font-bold.text-text.text-sm');
+                match.team2 = awayTeamSpan ? awayTeamSpan.textContent.trim() : '';
+                
+                // Away team score
+                const awayScoreSpan = awayTeamContainer.querySelector('.font-mono.font-bold.text-lg');
+                match.scoreteam2 = awayScoreSpan ? awayScoreSpan.textContent.trim() : '-';
+                
+                // Away team flag
+                const awayFlagImg = awayTeamContainer.querySelector('img');
+                if (awayFlagImg && awayFlagImg.src) {
+                    match.team2Flag = getAbsoluteUrl(awayFlagImg.src);
+                } else {
+                    // Try to find flag in the parent div with w-8 h-8 class
+                    const awayFlagDiv = awayTeamContainer.querySelector('.w-8.h-8.rounded-full');
+                    if (awayFlagDiv) {
+                        const imgInDiv = awayFlagDiv.querySelector('img');
+                        if (imgInDiv && imgInDiv.src) {
+                            match.team2Flag = getAbsoluteUrl(imgInDiv.src);
+                        }
+                    }
+                }
+            } else {
+                // Fallback: Try to find teams by text content
+                const allText = container.textContent || '';
+                const lines = allText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if ((line.includes('vs') || line.match(/[A-Z][a-z]+ [A-Z][a-z]+/)) && line.length < 50) {
+                        const parts = line.split(/ vs | - /);
+                        if (parts.length >= 2) {
+                            match.team1 = parts[0].trim();
+                            match.team2 = parts[1].trim();
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Extract prediction
+            const predictionElements = container.querySelectorAll('span.text-sm.font-extrabold.uppercase');
+            if (predictionElements.length > 0) {
+                match.prediction = predictionElements[0].textContent.trim();
+            } else {
+                // Look for prediction in text
+                const containerText = container.textContent || '';
+                if (containerText.includes('Home Win')) match.prediction = 'Home Win';
+                else if (containerText.includes('Away Win')) match.prediction = 'Away Win';
+                else if (containerText.includes('Draw')) match.prediction = 'Draw';
+                else if (containerText.includes('Over')) match.prediction = containerText.match(/Over\s+[\d.]+/)?.[0] || 'Over';
+                else if (containerText.includes('Under')) match.prediction = containerText.match(/Under\s+[\d.]+/)?.[0] || 'Under';
+            }
+            
+            // Extract odds
+            const oddsElements = container.querySelectorAll('.text-sm.font-bold.text-accent-dark');
+            if (oddsElements.length > 0) {
+                match.odds = oddsElements[0].textContent.trim();
+            } else {
+                // Look for odds in text (numbers like 1.30, 2.50, etc.)
+                const containerText = container.textContent || '';
+                const oddsMatch = containerText.match(/\d+\.\d+/);
+                if (oddsMatch) match.odds = oddsMatch[0];
+            }
+            
+            // Extract win probability
+            const probElements = container.querySelectorAll('.flex.justify-between.items-end.mb-1');
+            if (probElements.length > 0) {
+                const probText = probElements[0].textContent || '';
+                const probMatch = probText.match(/\d+%/);
+                if (probMatch) match.winProbability = probMatch[0];
+            }
+            
+            // Extract stake level
+            const stakeElements = container.querySelectorAll('.flex.items-center.gap-2.text-\\[10px\\].font-bold.text-gray-700.uppercase.tracking-wider');
+            if (stakeElements.length > 0) {
+                const stakeText = stakeElements[0].textContent || '';
+                if (stakeText.includes('High')) match.stakeLevel = 'High';
+                else if (stakeText.includes('Medium')) match.stakeLevel = 'Medium';
+                else if (stakeText.includes('Low')) match.stakeLevel = 'Low';
+            }
+            
+            // Determine result - look for specific result indicators
+const containerHTML = container.innerHTML || '';
+if (containerHTML.includes('fa-check-circle') || containerHTML.includes('✓') || 
+    containerHTML.includes('✅') || containerHTML.includes('bg-primary text-white')) {
+    match.result = 'win';
+} else if (containerHTML.includes('fa-times-circle') || containerHTML.includes('✕') || 
+           containerHTML.includes('bg-action text-white')) {
+    match.result = 'pending';
+} else {
+    match.result = 'pending';
+}
+            
+            // Clean up team flags - ensure they're valid URLs
+            if (match.team1Flag && !match.team1Flag.includes('http')) {
+                match.team1Flag = getAbsoluteUrl(match.team1Flag);
+            }
+            if (match.team2Flag && !match.team2Flag.includes('http')) {
+                match.team2Flag = getAbsoluteUrl(match.team2Flag);
+            }
+            
+            // If team flags are still empty, use placeholder based on team name
+            if (!match.team1Flag && match.team1) {
+                match.team1Flag = `https://ui-avatars.com/api/?name=${encodeURIComponent(match.team1)}&background=9A7701&color=fff`;
+            }
+            if (!match.team2Flag && match.team2) {
+                match.team2Flag = `https://ui-avatars.com/api/?name=${encodeURIComponent(match.team2)}&background=103F3E&color=fff`;
+            }
+            
+            return match;
+        }
+        
+        // Fallback parsing method
+        function fallbackParse(tempDiv) {
+            const matches = [];
+            
+            // Look for any elements that might contain match data
+            const potentialMatches = tempDiv.querySelectorAll('div[class*="group"], div[class*="match"], div[class*="bg-surface"]');
+            
+            potentialMatches.forEach((element, index) => {
+                const text = element.textContent || '';
+                
+                // Check if this looks like a match (has team names and possibly vs)
+                if (text.includes('vs') || (text.match(/[A-Z][a-z]+/g) && text.match(/[A-Z][a-z]+/g).length >= 2)) {
+                    const match = {
+                        id: 'fallback-match-' + index,
+                        country: 'Unknown',
+                        countryflag: 'https://sokapicks.com/flags/eu.svg',
+                        league: 'Unknown League',
+                        leagueflag: 'https://sokapicks.com/flags/eu.svg',
+                        team1: "",
+                        team2: "",
+                        team1flag: "",
+                        team2flag: "",
+                        time: "",
+                        status: "UPCOMING",
+                        scoreteam1: "-",
+                        scoreteam2: "-",
+                        prediction: "",
+                        odds: "",
+                        winProbability: "",
+                        stakeLevel: "",
+                        result: "pending"
+                    };
+                    
+                    // Try to extract teams
+                    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                    for (const line of lines) {
+                        if (line.includes('vs')) {
+                            const parts = line.split('vs').map(part => part.trim());
+                            if (parts.length >= 2) {
+                                match.team1 = parts[0];
+                                match.team2 = parts[1];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (match.team1 && match.team2) {
+                        matches.push(match);
+                    }
+                }
+            });
+            
+            return matches;
+        }
+        
+        // Display results
+        function displayResults(matches, stats) {
+            const resultsContainer = document.getElementById('results');
+            const jsonOutput = document.getElementById('jsonOutput');
+            const statsContainer = document.getElementById('statistics');
+            const matchCount = document.getElementById('match-count');
+            
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = '<p class="no-results">No matches found. The HTML structure might be different than expected.</p>';
+                jsonOutput.textContent = '[]';
+                statsContainer.innerHTML = '<p class="no-results">No statistics available</p>';
+                matchCount.textContent = '';
+                return;
+            }
+            
+            // Update match count
+            matchCount.textContent = `(${matches.length} matches)`;
+            
+            // Display formatted results
+            resultsContainer.innerHTML = '';
+            matches.forEach((match, index) => {
+                const matchEl = document.createElement('div');
+                matchEl.className = 'match';
+                
+                // Determine status class
+                let statusClass = match.status.toLowerCase();
+                let statusText = match.status;
+                
+                // Determine tip class based on result
+                let tipClass = 'ongoing';
+                if (match.result === 'win') {
+                    tipClass = 'win';
+                } else if (match.result === 'loss') {
+                    tipClass = 'loss';
+                }
+                
+                // Function to render team flag or placeholder
+                const renderTeamFlag = (teamName, flagUrl, isHome = true) => {
+                    if (flagUrl && flagUrl.includes('http')) {
+                        return `<img class="team-flag" src="${flagUrl}" alt="${teamName}" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\'team-flag-placeholder\'>${teamName.charAt(0)}</div>';">`;
+                    } else {
+                        return `<div class="team-flag-placeholder">${teamName.charAt(0)}</div>`;
+                    }
+                };
+                
+                // Build match display
+                let matchHtml = `
+                    <div class="match-header">
+                        <span class="league">
+                            <img class="country-flag" src="${match.countryFlag || 'https://sokapicks.com/flags/eu.svg'}" alt="${match.country}" onerror="this.src='https://sokapicks.com/flags/eu.svg'">
+                            ${match.country || 'Unknown'} ${match.league ? '- ' + match.league : ''}
+                        </span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span>${match.time || ''}</span>
+                            <span class="status ${statusClass}">
+                                <span class="status-indicator ${statusClass}"></span>
+                                ${statusText}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="teams">
+                        <div class="team home">
+                            ${renderTeamFlag(match.team1, match.team1Flag, true)}
+                            <span>${match.team1}</span>
+                        </div>
+                        <div class="score">${match.scoreteam1} : ${match.scoreteam2}</div>
+                        <div class="team away">
+                            ${renderTeamFlag(match.team2, match.team2Flag, false)}
+                            <span>${match.team2}</span>
+                        </div>
+                    </div>
+                    <div class="prediction">
+                        <span class="tip ${tipClass}">${match.prediction || 'No prediction'}</span>
+                        <span class="odds">${match.odds ? 'Odds: ' + match.odds : ''}</span>
+                    </div>
+                `;
+                
+                // Add stats if available
+                if (match.winProbability || match.stakeLevel || match.result !== 'pending') {
+                    matchHtml += `
+                        <div class="stats">
+                            ${match.winProbability ? `<div class="stat-item"><span>Win Probability:</span><strong>${match.winProbability}</strong></div>` : ''}
+                            ${match.stakeLevel ? `<div class="stat-item"><span>Stake Level:</span><strong>${match.stakeLevel}</strong></div>` : ''}
+                            <div class="stat-item"><span>Result:</span><strong>${match.result}</strong></div>
+                        </div>
+                    `;
+                }
+                
+                matchEl.innerHTML = matchHtml;
+                resultsContainer.appendChild(matchEl);
+            });
+            
+            // Display JSON output
+            jsonOutput.textContent = JSON.stringify(matches, null, 2);
+            
+            // Display statistics
+            const winRate = stats.total > 0 ? ((stats.wins / stats.total) * 100).toFixed(1) : 0;
+            
+            statsContainer.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Total Matches</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center;">${stats.total}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Finished</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center; color: #34c759;">${stats.finished}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Live</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center; color: #f40c27;">${stats.live}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Upcoming</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center; color: #9A7701;">${stats.upcoming}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Wins/Losses</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center;">
+                            <span style="color: #34c759;">${stats.wins}</span>/<span style="color: #f40c27;">${stats.losses}</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 5px;">
+                        <h3 style="color: #9A7701; margin-bottom: 10px;">Win Rate</h3>
+                        <div style="font-size: 2rem; font-weight: bold; text-align: center; color: ${winRate >= 50 ? '#34c759' : '#f40c27'};">${winRate}%</div>
+                    </div>
+                </div>
+                ${stats.countries.length > 0 ? `
+                <div style="margin-top: 10px;">
+                    <h3 style="color: #9A7701; margin-bottom: 10px;">Countries (${stats.countries.length})</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${stats.countries.map(country => `<span style="background: rgba(154,119,1,0.3); padding: 5px 10px; border-radius: 20px; font-size: 0.9rem;">${country}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                ${stats.leagues.length > 0 ? `
+                <div style="margin-top: 15px;">
+                    <h3 style="color: #9A7701; margin-bottom: 10px;">Leagues (${stats.leagues.length})</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${stats.leagues.map(league => `<span style="background: rgba(154,119,1,0.3); padding: 5px 10px; border-radius: 20px; font-size: 0.9rem;">${league}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+        }
+    </script>
+</body>
+</html>
